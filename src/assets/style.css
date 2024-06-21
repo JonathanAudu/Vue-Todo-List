@@ -114,6 +114,25 @@ main {
   font-size: 16px;
 }
 
+#comButton button{
+  background-color: #e74c3c;
+  color: #ffffff;
+  border: none;
+  padding: 10px 15px;
+  cursor: pointer;
+  font-size: 16px;
+  border-radius: 3px;
+}
+
+#comButton button:hover{
+  background-color: #9a2e2e;
+}
+
+.task-list li.complete label {
+  text-decoration: line-through;
+  color: #888888;
+}
+
 .task-list li .task-date {
   font-size: 14px;
   color: #888888;

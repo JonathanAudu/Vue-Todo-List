@@ -11,17 +11,32 @@
           :key="task.id"
           :class="{ complete: task.is_completed }"
         >
-          <div>
+          <div class="align-task">
             <input
               type="checkbox"
               :id="'task-' + task.id"
               :checked="task.is_completed"
+              @change="toggleTaskCompletion(task)"
             />
-            <label :for="'task-' + task.id">{{ task.name }}</label>
+            <div v-if="!task.isEditing">
+              <label :for="'task-' + task.id">{{ task.name }}</label>
+            </div>
+            <div v-else>
+              <input
+                type="text"
+                v-model="task.name"
+                @keydown.enter="saveTask(task)"
+                class="borderless-input"
+              />
+            </div>
           </div>
-          <span class="task-icons">
-            <i class="fas fa-edit"></i>
-            <i class="fas fa-trash-alt"></i>
+          <span class="task-icons" v-if="!task.isEditing">
+            <button @click="editTask(task)" v-if="!task.is_completed">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button @click="confirmRemoveTask(task)">
+              <i class="fas fa-trash-alt"></i>
+            </button>
           </span>
         </li>
       </ul>
@@ -41,34 +56,52 @@
           :key="task.id"
           :class="{ complete: task.is_completed }"
         >
-          <div>
+          <div class="align-task">
             <input
               type="checkbox"
               :id="'task-' + task.id"
               :checked="task.is_completed"
+              @change="toggleTaskCompletion(task)"
             />
-            <label :for="'task-' + task.id">{{ task.name }}</label>
+            <div v-if="!task.isEditing">
+              <label :for="'task-' + task.id">{{ task.name }}</label>
+            </div>
+            <div v-else>
+              <input
+                type="text"
+                v-model="task.name"
+                @keydown.enter="saveTask(task)"
+                class="borderless-input"
+              />
+            </div>
           </div>
-          <span class="task-icons">
-            <i class="fas fa-edit"></i>
-            <i class="fas fa-trash-alt"></i>
+          <span class="task-icons" v-if="!task.isEditing">
+            <button @click="confirmRemoveTask(task)">
+              <i class="fas fa-trash-alt"></i>
+            </button>
           </span>
         </li>
       </ul>
     </div>
   </main>
 </template>
-  
-  <script setup>
+
+<script setup>
 import { computed, onMounted, ref } from "vue";
-import { allTasks, createTask } from "../http/task-api";
+import {
+  allTasks,
+  createTask,
+  updateTask,
+  deleteTask,
+  completeTask,
+} from "../http/task-api";
 import NewTask from "../components/tasks/NewTask.vue";
 
 const tasks = ref([]);
 
 onMounted(async () => {
   const { data } = await allTasks();
-  tasks.value = data.data;
+  tasks.value = data.data.map((task) => ({ ...task, isEditing: false }));
 });
 
 const completedTasks = computed(() =>
@@ -86,7 +119,44 @@ const showToggleCompleteBtn = computed(
 
 const handleAddedTask = async (newTask) => {
   const { data: createdTask } = await createTask(newTask);
-  tasks.value.unshift(createdTask.data);
+  tasks.value.unshift({ ...createdTask.data, isEditing: false });
+};
+
+const editTask = (task) => {
+  task.isEditing = true;
+};
+
+const saveTask = async (task) => {
+  if (task.name.trim() === "") {
+    alert("Task name cannot be empty.");
+    return;
+  }
+  await updateTask(task.id, {
+    name: task.name,
+    is_completed: task.is_completed,
+  });
+  task.isEditing = false;
+};
+
+const confirmRemoveTask = async (task) => {
+  if (confirm("Are you sure you want to delete this task?")) {
+    await deleteTask(task.id);
+    tasks.value = tasks.value.filter((t) => t.id !== task.id);
+  }
+};
+
+const toggleTaskCompletion = async (task) => {
+  const updatedTask = { ...task, is_completed: !task.is_completed };
+
+  try {
+    const response = await completeTask(task.id, {
+      is_completed: updatedTask.is_completed,
+    });
+    if (response.data) {
+      task.is_completed = updatedTask.is_completed;
+    }
+  } catch (error) {
+    console.error("Failed to update task completion status", error);
+  }
 };
 </script>
-  
